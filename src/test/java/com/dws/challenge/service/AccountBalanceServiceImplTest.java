@@ -91,10 +91,46 @@ class AccountBalanceServiceImplTest {
         this.accountsService.createAccount(account);
 
         try {
-            accountBalanceService.transferBalanceBWAccounts("source","dest",new BigDecimal(4000));
+            accountBalanceService.transferBalanceBWAccounts("source_exceptional","dest_exceptional",new BigDecimal(4000));
         }catch (Exception e){
             assertThat(e instanceof InvalidTransactionException);
-            assertThat("Not sufficient balance in account <source>").isEqualTo(e.getMessage());
+            assertThat(e.getMessage()).isEqualTo("Not sufficient balance in account <source_exceptional>");
+        }
+    }
+
+    @Test
+    void transferBalanceBWAccounts_invalid_source_account() throws InvalidTransactionException {
+        accountsService.getAccountsRepository().clearAccounts();
+        Account account = new Account("source_exceptional");
+        account.setBalance(new BigDecimal(3000));
+        this.accountsService.createAccount(account);
+
+        account = new Account("dest_exceptional");
+        account.setBalance(new BigDecimal(1000));
+        this.accountsService.createAccount(account);
+
+        try {
+            accountBalanceService.transferBalanceBWAccounts("invalid_source_account","dest_exceptional",new BigDecimal(4000));
+        }catch (RuntimeException e){
+            assertThat(e.getMessage()).isEqualTo("invalid account !");
+        }
+    }
+
+    @Test
+    void transferBalanceBWAccounts_invalid_Destination_account() throws InvalidTransactionException {
+        accountsService.getAccountsRepository().clearAccounts();
+        Account account = new Account("source_exceptional");
+        account.setBalance(new BigDecimal(3000));
+        this.accountsService.createAccount(account);
+
+        account = new Account("dest_exceptional");
+        account.setBalance(new BigDecimal(1000));
+        this.accountsService.createAccount(account);
+
+        try {
+            accountBalanceService.transferBalanceBWAccounts("source_exceptional","dest_exceptional",new BigDecimal(500));
+        }catch (RuntimeException e){
+            assertThat(e.getMessage()).isEqualTo("invalid account !");
         }
     }
 }

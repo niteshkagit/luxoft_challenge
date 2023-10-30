@@ -82,8 +82,8 @@ public class AccountBalanceServiceImpl implements AccountBalanceService{
     }
 
     private void validateAccount(Account account, BigDecimal transferAmount, String accountType) {
-        if (account ==null ){ // or any other account invalidity related thing
-            throw new RuntimeException(String.format("invalid account {} for account type {}",account,accountType));
+        if (account == null ){ // or any other account invalidity related thing
+            throw new RuntimeException( "invalid account !");
         }
         if ("SOURCE".equals(accountType)) {
             if (account.getBalance().subtract(transferAmount).compareTo(BigDecimal.ZERO) == -1){
