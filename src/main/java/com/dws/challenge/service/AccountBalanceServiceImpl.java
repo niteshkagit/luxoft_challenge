@@ -41,8 +41,8 @@ public class AccountBalanceServiceImpl implements AccountBalanceService{
      * This method transfers balance between the accounts.
      * It also checks for some base condition which needs to meets and facilitate transfer
      *
-     * First take lock on source account and then verify the transfer condition(s)
-     * then take lock on destination account and do the transfer
+     * First take lock on source account id string and then verify the transfer condition(s)
+     * then take lock on destination account id and do the transfer
      *
      * @param srcAccountId
      * @param destAccountId
@@ -51,17 +51,19 @@ public class AccountBalanceServiceImpl implements AccountBalanceService{
      */
     @Override
     public boolean transferBalanceBWAccounts(String srcAccountId, String destAccountId, BigDecimal transferAmount) {
-
-        ReentrantLock srcLock = accountLocks.computeIfAbsent(srcAccountId, k -> new ReentrantLock()); // may consider using cache to have locks
-        ReentrantLock destLock = accountLocks.computeIfAbsent(destAccountId, k -> new ReentrantLock());
+        accountLocks.putIfAbsent(srcAccountId, new ReentrantLock()); // may consider using cache to have locks
+        accountLocks.putIfAbsent(destAccountId, new ReentrantLock());
+        ReentrantLock srcLock = accountLocks.get(srcAccountId);
+        ReentrantLock destLock = accountLocks.get(srcAccountId);
 
         try {
             srcLock.lock();
             Account srcAccount = accountsRepository.getAccount(srcAccountId);
-            checkIfBalAvailable(srcAccount, transferAmount); // We can have multiple such pre validations
+            validateAccount(srcAccount, transferAmount,"SOURCE"); // We can have multiple such pre validations
             try {
                 destLock.lock();
                 Account destAccount = accountsRepository.getAccount(destAccountId);
+                validateAccount(destAccount,transferAmount,"DEST");
                 destAccount.setBalance(destAccount.getBalance().add(transferAmount));
                 srcAccount.setBalance(srcAccount.getBalance().subtract(transferAmount));
                 notificationService.notifyAboutTransfer(srcAccount,"Dear account holder ! $"+ transferAmount +" is debited from account :"+srcAccountId);
@@ -76,38 +78,23 @@ public class AccountBalanceServiceImpl implements AccountBalanceService{
             srcLock.unlock();
         }
 
-
-
-        /*
-        try {
-          // Basic synchronization
-           synchronized (srcAccountId){
-                synchronized (destAccountId){
-                    checkIfBalAvailable(srcAccount,transferAmount); // We can have multiple such pre validations -
-                    // such as 1] account status, 2] destination account status 3] transaction amount size etc etc but here it can be considered as out of scope
-
-                    destAccount.setBalance(destAccount.getBalance().add(transferAmount));
-                    srcAccount.setBalance(srcAccount.getBalance().subtract(transferAmount));
-                }
-            }
-
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-          //TODO
-        }
-
-         */
-
-
-
         return false;
     }
 
-    private void checkIfBalAvailable(Account srcAccount, BigDecimal transferAmount) {
-        if (srcAccount.getBalance().subtract(transferAmount).compareTo(BigDecimal.ZERO) == -1){
-            throw new InvalidTransactionException("Not sufficient balance in account <"+srcAccount.getAccountId()+">");
+    private void validateAccount(Account account, BigDecimal transferAmount, String accountType) {
+        if (account ==null ){ // or any other account invalidity related thing
+            throw new RuntimeException(String.format("invalid account {} for account type {}",account,accountType));
         }
+        if ("SOURCE".equals(accountType)) {
+            if (account.getBalance().subtract(transferAmount).compareTo(BigDecimal.ZERO) == -1){
+                throw new InvalidTransactionException("Not sufficient balance in account <"+account.getAccountId()+">");
+            }
+        }else if ("DEST".equals(accountType)){
+            //TODO have implementation
+        }
+    }
+
+    private void checkIfBalAvailable(Account srcAccount, BigDecimal transferAmount) {
+
     }
 }
