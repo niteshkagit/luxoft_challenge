@@ -54,7 +54,7 @@ public class AccountBalanceServiceImpl implements AccountBalanceService{
         accountLocks.putIfAbsent(srcAccountId, new ReentrantLock()); // may consider using cache to have locks
         accountLocks.putIfAbsent(destAccountId, new ReentrantLock());
         ReentrantLock srcLock = accountLocks.get(srcAccountId);
-        ReentrantLock destLock = accountLocks.get(srcAccountId);
+        ReentrantLock destLock = accountLocks.get(destAccountId);
 
         try {
             srcLock.lock();
