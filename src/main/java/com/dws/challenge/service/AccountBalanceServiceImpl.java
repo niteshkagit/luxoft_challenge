@@ -61,6 +61,8 @@ public class AccountBalanceServiceImpl implements AccountBalanceService{
            validateAccount(destAccount, transferAmount, "DEST");
            srcAccount.setBalance(srcAccount.getBalance().subtract(transferAmount));
            destAccount.setBalance(destAccount.getBalance().add(transferAmount));
+           notificationService.notifyAboutTransfer(srcAccount,"Dear account holder ! $"+ transferAmount +" is debited from account :"+srcAccountId);
+           notificationService.notifyAboutTransfer(destAccount,"Dear account holder ! $"+ transferAmount +" is credited from account :"+destAccountId);
 
        }finally {
            lock.unlock();
